@@ -1,0 +1,133 @@
+import argparse
+from pathlib import Path
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
+import sys
+
+def load_data(path: Path) -> pd.DataFrame:
+    if path.exists():
+        df = pd.read_csv(path)
+    else:
+        # Create a small synthetic dataset if none provided
+        df = pd.DataFrame({
+            "nota": [100,2000,1500,3000,750],
+            "Qtd_Vendidos_Cod": [50,150,120,200,80],
+            "Material": ["Plastico","Metal","Plastico","Metal","Madeira"],
+            "N_Avaliações": [10,30,25,50,15],
+            "Desconto": [5.0,10.0,7.5,12.0,6.0],
+            "marca": ["MarcaA","MarcaB","MarcaA","MarcaC","MarcaB"]
+        })
+    return df
+
+def ensure_dir(p: Path):
+    p.mkdir(parents=True, exist_ok=True)
+
+def save_histogram(df, out_dir: Path):
+    plt.figure(figsize=(10,6))
+    plt.hist(df['nota'], bins=20, alpha=0.8)
+    plt.title('Histograma - Frequência de notas')
+    plt.xlabel('nota')
+    plt.ylabel('Frequência')
+    plt.grid(True)
+    out = out_dir / "histograma_notas.png"
+    plt.tight_layout()
+    plt.savefig(out)
+    plt.close()
+    print(f"Saved {out}")
+
+def save_scatter(df, out_dir: Path):
+    plt.figure(figsize=(8,6))
+    plt.scatter(df['nota'], df['Qtd_Vendidos_Cod'], alpha=0.7)
+    plt.title('Dispersão - nota x Qtd_Vendidos_Cod')
+    plt.xlabel('nota')
+    plt.ylabel('Qtd_Vendidos_Cod')
+    plt.tight_layout()
+    out = out_dir / "dispersao_nota_qtd.png"
+    plt.savefig(out)
+    plt.close()
+    print(f"Saved {out}")
+
+def save_correlation_heatmap(df, out_dir: Path):
+    numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+    corr = df[numeric_cols].corr()
+    plt.figure(figsize=(8,6))
+    sns.heatmap(corr, annot=True, cmap='coolwarm')
+    plt.title('Heatmap de Correlação (numéricas)')
+    plt.tight_layout()
+    out = out_dir / "correlacao_heatmap.png"
+    plt.savefig(out)
+    plt.close()
+    print(f"Saved {out}")
+
+def save_bar_and_pie(df, out_dir: Path):
+    counts = df['N_Avaliações'].value_counts().sort_index()
+    plt.figure(figsize=(10,6))
+    counts.plot(kind='bar')
+    plt.title('Contagem de N_Avaliações')
+    plt.xlabel('N_Avaliações')
+    plt.ylabel('Frequência')
+    plt.tight_layout()
+    out = out_dir / "grafico_barras.png"
+    plt.savefig(out)
+    plt.close()
+    print(f"Saved {out}")
+
+    plt.figure(figsize=(8,8))
+    plt.pie(counts.values, labels=counts.index.astype(str), autopct='%.1f%%', startangle=90)
+    plt.title('Distribuição de N_Avaliações')
+    plt.tight_layout()
+    out = out_dir / "grafico_pizza.png"
+    plt.savefig(out)
+    plt.close()
+    print(f"Saved {out}")
+
+def save_density(df, out_dir: Path):
+    if 'Desconto' in df.columns:
+        plt.figure(figsize=(10,6))
+        sns.kdeplot(df['Desconto'], fill=True)
+        plt.title('Densidade de Desconto')
+        plt.xlabel('Desconto')
+        plt.tight_layout()
+        out = out_dir / "densidade_desconto.png"
+        plt.savefig(out)
+        plt.close()
+        print(f"Saved {out}")
+
+def save_regression(df, out_dir: Path):
+    # Use Desconto as numeric target for regression against nota
+    if 'Desconto' in df.columns:
+        plt.figure(figsize=(8,6))
+        sns.regplot(x='nota', y='Desconto', data=df, scatter_kws={'alpha':0.6})
+        plt.title('Regressão: nota vs Desconto')
+        plt.xlabel('nota')
+        plt.ylabel('Desconto')
+        plt.tight_layout()
+        out = out_dir / "regressao_desconto.png"
+        plt.savefig(out)
+        plt.close()
+        print(f"Saved {out}")
+
+def main():
+    parser = argparse.ArgumentParser(description="Gera gráficos exploratórios a partir de um CSV de e-commerce e salva imagens.")
+    parser.add_argument("--data", type=str, default="data/ecommerce_estatistica.csv", help="Caminho para o CSV de dados.")
+    parser.add_argument("--out", type=str, default="images/", help="Pasta de saída para imagens.")
+    args = parser.parse_args()
+
+    data_path = Path(args.data)
+    out_dir = Path(args.out)
+    ensure_dir(out_dir)
+
+    df = load_data(data_path)
+    print(df.head().to_string())
+
+    save_histogram(df, out_dir)
+    save_scatter(df, out_dir)
+    save_correlation_heatmap(df, out_dir)
+    save_bar_and_pie(df, out_dir)
+    save_density(df, out_dir)
+    save_regression(df, out_dir)
+
+if __name__ == "__main__":
+    main()
